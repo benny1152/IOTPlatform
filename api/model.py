@@ -190,6 +190,7 @@ class Thermostat(Device):
 
     def configure_target_temperature(self, temperature):
         error = None
+        data = None
         if self.vendor == "OWN":
             if "url" in self.configuration:
                 url = self.configuration['url'] + "/write"
@@ -202,6 +203,27 @@ class Thermostat(Device):
                     error = "Cannot configure target temperature from configuration URL: {}".format(ex)
             else:
                 error = "Can't configure target temperature as no url is set in configuration"
+        elif self.vendor == "energenie":
+            if "username" in self.configuration and "password" in self.configuration and "device_id" in self.configuration:
+                try:
+                    username = self.configuration['username']
+                    password = self.configuration['password']
+                    dev_id = int(self.configuration['device_id'])
+                    logging.debug(
+                        "Configuring target temp for mihome4u data. Auth = {}, json = {}".format((username, password), {"id": dev_id}))
+                    r = requests.get("https://mihome4u.co.uk/api/v1/subdevices/set_target_temperature", auth=(username, password),
+                                     json={"id": dev_id})
+                    r_data = r.json()
+                    logging.debug("Got: {}".format(r_data))
+                    if r_data["status"] != "success":
+                        error = "External error: {}".format(r_data['status'])
+                    else:
+                        data = {'power_state': r_data['data']['power_state'], 'voltage': r_data['data']['voltage']}
+                except Exception as ex:
+                    error = "Cannot read device data from URL: {}".format(ex)
+            else:
+                error = "Not all required information is set in the configuration"
+            logging.debug("Read current data for the device: {}".format(data))
         else:
             error = "configure_target_temperature not implemented for vendor {}".format(self.vendor)
         return error
