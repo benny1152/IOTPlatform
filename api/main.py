@@ -149,6 +149,7 @@ def get_devices_for_house(house_id):
 def get_device_info(device_id):
     access = api.device_repository.validate_token(ObjectId(device_id), get_request_token())
     if not access:
+        api.device_repository.update_faulty_status(device_id, 'auth')
         return jsonify({"device": None, "error": {"code": 401, "message": "Authentication failed"}})
     device = api.device_repository.get_device_by_id(ObjectId(device_id))
     if device is None:
@@ -185,6 +186,7 @@ def add_device(house_id):
 def remove_device(device_id):
     access = api.device_repository.validate_token(ObjectId(device_id), get_request_token())
     if not access:
+        api.device_repository.update_faulty_status(device_id, 'auth')
         return jsonify({"device_id": None, "error": {"code": 401, "message": "Authentication failed"}})
     result = api.device_repository.remove_device(ObjectId(device_id))
     if result is None:
@@ -227,6 +229,8 @@ def link_device_to_room(room_id, device_id):
     access1 = api.room_repository.validate_token(ObjectId(room_id), get_request_token())
     access2 = api.device_repository.validate_token(ObjectId(device_id), get_request_token())
     if not access1 or not access2:
+        if not access2:
+            api.device_repository.update_faulty_status(device_id, 'auth')
         return jsonify({"device": None, "error": {"code": 401, "message": "Authentication failed"}})
     room = api.room_repository.get_room_by_id(ObjectId(room_id))
     return jsonify({"device": result.get_device_attributes(), "error": None})
@@ -239,6 +243,7 @@ def configure_thermostat(device_id):
         return jsonify({"device": None, "error": {"code": 404, "message": "No such device found"}})
     access = api.device_repository.validate_token(ObjectId(device_id), get_request_token())
     if not access:
+        api.device_repository.update_faulty_status(device_id, 'auth')
         return jsonify({"device": None, "error": {"code": 401, "message": "Authentication failed"}})
     data = request.get_json()
     target_temperature = data['target_temperature']
@@ -257,6 +262,7 @@ def configure_switch(device_id):
         return jsonify({"device": None, "error": {"code": 404, "message": "No such device found"}})
     access = api.device_repository.validate_token(ObjectId(device_id), get_request_token())
     if not access:
+        api.device_repository.update_faulty_status(device_id, 'auth')
         return jsonify({"device": None, "error": {"code": 401, "message": "Authentication failed"}})
     data = request.get_json()
     power_state = data['power_state']
@@ -272,6 +278,7 @@ def configure_switch(device_id):
 def get_house_info(house_id):
     access = api.house_repository.validate_token(ObjectId(house_id), get_request_token())
     if not access:
+        api.device_repository.update_faulty_status(device_id, 'auth')
         return jsonify({"devices": None, "error": {"code": 401, "message": "Authentication failed"}})
     house = api.house_repository.get_house_by_id(house_id)
     return jsonify({
@@ -284,6 +291,7 @@ def get_house_info(house_id):
 def get_trigger_info(trigger_id):
     access = api.trigger_repository.validate_token(ObjectId(trigger_id), get_request_token())
     if not access:
+        api.device_repository.update_faulty_status(device_id, 'auth')
         return jsonify({"trigger": None, "error": {"code": 401, "message": "Authentication failed"}})
     trigger = api.trigger_repository.get_trigger_by_id(ObjectId(trigger_id))
     if trigger is None:
@@ -295,6 +303,7 @@ def get_trigger_info(trigger_id):
 def get_triggers_for_device(device_id):
     access = api.device_repository.validate_token(ObjectId(device_id), get_request_token())
     if not access:
+        api.device_repository.update_faulty_status(device_id, 'auth')
         return jsonify({"triggers": None, "error": {"code": 401, "message": "Authentication failed"}})
     triggers = api.trigger_repository.get_triggers_for_device(ObjectId(device_id))
     if triggers is None:
@@ -306,6 +315,7 @@ def get_triggers_for_device(device_id):
 def get_actions_for_device(device_id):
     access = api.device_repository.validate_token(ObjectId(device_id), get_request_token())
     if not access:
+        api.device_repository.update_faulty_status(device_id, 'auth')
         return jsonify({"triggers": None, "error": {"code": 401, "message": "Authentication failed"}})
     triggers = api.trigger_repository.get_actions_for_device(ObjectId(device_id))
     if triggers is None:
@@ -442,6 +452,7 @@ def update_theme(theme_id, device_id, setting):
 def remove_device_from_theme(theme_id, device_id):
     access = api.theme_repository.validate_token(ObjectId(theme_id), get_request_token())
     if not access:
+        api.device_repository.update_faulty_status(device_id, 'auth')
         return jsonify({"theme": None, "error": {"code": 401, "message": "Authentication failed"}})
     theme = api.theme_repository.remove_device_from_theme(theme_id, device_id)
     return jsonify({"theme": theme, "error": None})

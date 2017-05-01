@@ -229,10 +229,16 @@ class DeviceRepository(Repository):
         return devices
 
     def update_device_reading(self, device):
+        device_id = device.device_id
         last_read = device.read_current_state()
-        self.collection.update_one({'_id': device.device_id},
+        if "error" in last_read and last_read["error"] is not None:
+            self.update_faulty_status(device_id, 'error')
+        if device.device_type == "thermostat":
+            if device.status['last_temperature'] < 0 or device.status['last_temperature'] > 60:
+                self.update_faulty_status(device_id, 'error')
+        self.collection.update_one({'_id': device_id},
                                    {"$set": {'status.last_read': last_read}})
-        updated_device = self.collection.find({'_id': device.device_id})
+        updated_device = self.collection.find({'_id': device_id})
         return updated_device
 
     def update_all_device_readings(self):
@@ -245,7 +251,7 @@ class DeviceRepository(Repository):
         return updated_devices
 
     def update_faulty_status(self, device_id, status):
-        date = datetime.date.today()
+        date = datetime.datetime.today()
         device = self.get_device_by_id(device_id)
         if status == 'auth':
             device.faulty['status'] = 'Authorisation Error'
@@ -256,7 +262,7 @@ class DeviceRepository(Repository):
         else:
             device.faulty['status'] = 'OK'
         device.faulty['date'] = date
-        self.collection.update_one({'_id': device_id, 'faulty': device.faulty})
+        self.collection.update_one({'_id': device_id}, {"$set": {'faulty': device.faulty}})
         return device_id
 
     def add_device(self, house_id, room_id, name, device_type, target, configuration, vendor):
@@ -273,7 +279,7 @@ class DeviceRepository(Repository):
                  or "password" not in configuration
                  or "device_id" not in configuration):
             raise Exception("Not all required info is in the configuration.")
-        date = datetime.date.today()
+        date = datetime.datetime.today()
         faulty = {'status': 'OK', 'date': date.strftime("%d-%B-%Y")}
         device = self.collection.insert_one({'house_id': house_id, 'room_id': room_id, 'user_id': user_id,
                                              'name': name, 'device_type': device_type, 'locking_theme_id': None,
@@ -379,7 +385,7 @@ class DeviceRepository(Repository):
             self.collection.update_one({'_id': device_id}, {"$set": {'target.target_temperature': temp}}, upsert=False)
             device = self.get_device_by_id(device_id)
             device.configure_target_temperature(temp)
-            updated_device = self.update_device_reading(device)
+        updated_device = self.update_device_reading(device)
         return updated_device
 
     def set_locking_theme_id(self, device_id, locking_theme_id):
