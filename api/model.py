@@ -89,7 +89,7 @@ class Device(object):
         self.vendor = None
         self.configuration = None
         self.locking_theme_id = None
-        self.faulty = None
+        self.faulty = {}
         self.target = {}
         self.status = {}
         self.set_attributes(attributes)
@@ -102,7 +102,7 @@ class Device(object):
         self.name = attributes['name']
         self.device_type = attributes['device_type']
         self.locking_theme_id = get_optional_attribute(attributes, 'locking_theme_id', None)
-        self.faulty = get_optional_attribute(attributes, 'faulty', False)
+        self.faulty = get_optional_attribute(attributes, 'faulty', {})
         self.target = get_optional_attribute(attributes, 'target', {})
         self.status = get_optional_attribute(attributes, 'status', {})
         self.vendor = get_optional_attribute(attributes, 'vendor', None)
@@ -193,9 +193,13 @@ class Device(object):
         return {"data": data}
 
     def is_faulty(self):
-        if "error" in self.status['last_read'] and self.status['last_read']['error'] is not None:
-            self.faulty = True
-        return self.faulty
+        if self.faulty['status'] is not 'OK':
+            return True
+
+    # def is_faulty(self):
+    #     if "error" in self.status['last_read'] and self.status['last_read']['error'] is not None:
+    #         self.faulty = True
+    #     return self.faulty
 
 
 class Thermostat(Device):

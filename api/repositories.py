@@ -244,6 +244,21 @@ class DeviceRepository(Repository):
             updated_devices.append(updated_device)
         return updated_devices
 
+    def update_faulty_status(self, device_id, status):
+        date = datetime.date.today()
+        device = self.get_device_by_id(device_id)
+        if status == 'auth':
+            device.faulty['status'] = 'Authorisation Error'
+        elif status == 'abnormal':
+            device.faulty['status'] = 'Abnormal Reading'
+        elif status == 'error':
+            device.faulty['status'] = 'Reading Error'
+        else:
+            device.faulty['status'] = 'OK'
+        device.faulty['date'] = date
+        self.collection.update_one({'_id': device_id, 'faulty': device.faulty})
+        return device_id
+
     def add_device(self, house_id, room_id, name, device_type, target, configuration, vendor):
         house_devices = self.get_devices_for_house(house_id)
         user_id = self.get_user_by_house_id(house_id)
@@ -258,9 +273,11 @@ class DeviceRepository(Repository):
                  or "password" not in configuration
                  or "device_id" not in configuration):
             raise Exception("Not all required info is in the configuration.")
+        date = datetime.date.today()
+        faulty = {'status': 'OK', 'date': date.strftime("%d-%B-%Y")}
         device = self.collection.insert_one({'house_id': house_id, 'room_id': room_id, 'user_id': user_id,
                                              'name': name, 'device_type': device_type, 'locking_theme_id': None,
-                                             'target': target, 'configuration': configuration,
+                                             'faulty': faulty, 'target': target, 'configuration': configuration,
                                              'vendor': vendor})
         device_id = device.inserted_id
         self.collection.update_one({'_id': device_id}, {"$set": {'status.last_read': 0}})
